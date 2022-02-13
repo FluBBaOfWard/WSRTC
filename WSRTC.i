@@ -10,6 +10,7 @@
 	rtcptr		.req r0
 						;@ WSRTC.s
 	.struct 0
+rtcInterruptPtr:	.long 0
 wsRtcState:
 rtcCommand:			.byte 0		;@ Command
 rtcIndex:			.byte 0

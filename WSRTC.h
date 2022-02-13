@@ -15,6 +15,7 @@ extern "C" {
 #endif
 
 typedef struct {
+	void void *interruptPtr(int val);
 	u8 rtcCommand;
 	u8 rtcIndex;
 	u8 rtcAlarmOnOff;
@@ -29,7 +30,7 @@ typedef struct {
 	u8 rtcAlarmMinute;
 } WSRTC;
 
-void wsRtcReset(WSRTC *chip);
+void wsRtcReset(WSRTC *chip, void *interruptFunc);
 
 /**
  * Saves the state of the chip to the destination.

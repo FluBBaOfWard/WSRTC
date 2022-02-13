@@ -37,11 +37,16 @@
 #endif
 	.align 2
 ;@----------------------------------------------------------------------------
-wsRtcReset:			;@ In r0 = rtcptr
+wsRtcReset:			;@ In r0 = rtcptr, r1=interrupt func
 	.type   wsRtcReset STT_FUNC
 ;@----------------------------------------------------------------------------
+	cmp r1,#0
+	adreq r1,dummyFunc
+	str r1,[rtcptr,#rtcInterruptPtr]
 	ldr r1,=wsRtcSize/4
 	b memclr_					;@ Clear WSRtc state
+dummyFunc:
+	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcSaveState:			;@ In r0=destination, r1=rtcptr. Out r0=state size.
 	.type   wsRtcSaveState STT_FUNC
@@ -86,14 +91,6 @@ wsRtcSetDateTime:				;@ In r0=rtcptr, r1 ??ssMMHH, r2 = ??DDMMYY
 	mov r1,r1,lsr#8
 	strb r1,[rtcptr,#rtcSecond]		;@ Second
 	bx lr
-;@----------------------------------------------------------------------------
-wsRtcUpdateFrame:		;@ r0=rtcptr. Call every frame.
-;@----------------------------------------------------------------------------
-//	ldrb r0,rtcTimer
-	subs r0,r0,#1
-	movmi r0,#59					;@ How many frames per seoncd -1
-//	strb r0,rtcTimer
-	bxpl lr
 ;@----------------------------------------------------------------------------
 wsRtcUpdate:		;@ r0=rtcptr. Call every second.
 	.type   wsRtcUpdate STT_FUNC
@@ -157,19 +154,16 @@ checkForAlarm:
 	ldrbeq r2,[rtcptr,#rtcAlarmHour]	;@ ALARM Hours
 	cmpeq r1,r2
 	moveq r0,#0x0A
-	beq setInterruptExternal
+	ldreq r1,[rtcptr,#rtcInterruptPtr]
+	bxeq r1
 
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcStatusR:			;@ r0=rtcptr
 	.type   wsRtcStatusR STT_FUNC
 ;@----------------------------------------------------------------------------
-	stmfd sp!,{r0,r12,lr}
-	mov r0,#0xCA
-	mov r1,#0x80
-	blx debugIOUnimplR
-	ldmfd sp!,{r0,r12,lr}
-	mov r0,#0x80				;@ Hack, always ready
+	ldrb r0,[rtcptr,#rtcCommand]
+	orr r0,r0,#0x80			;@ Hack, always ready
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcDataR:				;@ r0=rtcptr
@@ -195,7 +189,7 @@ readDateTime:
 noRtcData:
 	mov r1,#0
 	strb r1,[rtcptr,#rtcCommand]
-	mov r0,#0
+	mov r0,#0x80
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcDataW:				;@ r0=rtcptr, r1 = value
@@ -237,9 +231,10 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	mov r0,#0xCB
 	blx debugIOUnimplW
 	ldmfd sp!,{r0,r1,r12,lr}
+	and r1,r1,#0x1F
 	strb r1,[rtcptr,#rtcCommand]
-	mov r1,#0
-	strb r1,[rtcptr,#rtcIndex]
+	mov r2,#0
+	strb r2,[rtcptr,#rtcIndex]
 
 	cmp r1,#0x10			;@ Reset
 	beq wsRtcReset
