@@ -1,0 +1,10 @@
+WSRTC revision history
+-=-=-=-=-=-=-=-=-=-=-=-
+
+
+V0.1.0 - 2022-02-13 (FluBBa)
+	First release.
+
+V0.0.0 - 2022-02-12 (FluBBa)
+	Started coding.
+
