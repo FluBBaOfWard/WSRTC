@@ -6,4 +6,4 @@
 //  Copyright © 2022 Fredrik Ahlström. All rights reserved.
 //
 
-#define WSRTCVERSION "V0.1.0"
+#define WSRTCVERSION "V0.2.0"

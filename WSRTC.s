@@ -8,6 +8,9 @@
 //  Created by Fredrik Ahlström on 2022-02-12.
 //  Copyright © 2022 Fredrik Ahlström. All rights reserved.
 //
+// Bandai WonderSwan RTC emulation.
+// Seiko S-3511A RTC behind Bandai 2003.
+// Based on https://forums.nesdev.org/viewtopic.php?t=21513
 
 #include "WSRTC.i"
 
@@ -43,8 +46,18 @@ wsRtcReset:			;@ In r0 = rtcptr, r1=interrupt func
 	cmp r1,#0
 	adreq r1,dummyFunc
 	str r1,[rtcptr,#rtcInterruptPtr]
-	ldr r1,=wsRtcSize/4
-	b memclr_					;@ Clear WSRtc state
+	mov r1,#0
+	str r1,[rtcptr,#wsRtcState]
+	str r1,[rtcptr,#wsRtcState+4]
+	str r1,[rtcptr,#wsRtcState+8]
+	str r1,[rtcptr,#wsRtcState+12]
+	mov r1,#1
+	strb r1,[rtcptr,#rtcMonth]
+	strb r1,[rtcptr,#rtcDay]
+	mov r1,#-1
+	strb r1,[rtcptr,#rtcPadding0]
+	strb r1,[rtcptr,#rtcPadding1]
+	strb r1,[rtcptr,#rtcPadding2]
 dummyFunc:
 	bx lr
 ;@----------------------------------------------------------------------------
@@ -52,7 +65,7 @@ wsRtcSaveState:			;@ In r0=destination, r1=rtcptr. Out r0=state size.
 	.type   wsRtcSaveState STT_FUNC
 ;@----------------------------------------------------------------------------
 	stmfd sp!,{lr}
-//	add r1,r1,#wsRtcState
+	add r1,r1,#wsRtcState
 	mov r2,#(wsRtcStateEnd-wsRtcState)
 	bl memcpy
 
@@ -64,7 +77,7 @@ wsRtcLoadState:			;@ In r0=rtcptr, r1=source. Out r0=state size.
 	.type   wsRtcLoadState STT_FUNC
 ;@----------------------------------------------------------------------------
 	stmfd sp!,{lr}
-//	add r0,r0,#wsRtcState
+	add r0,r0,#wsRtcState
 	mov r2,#(wsRtcStateEnd-wsRtcState)
 	bl memcpy
 
@@ -125,13 +138,19 @@ wsRtcUpdate:		;@ r0=rtcptr. Call every second.
 	strb r1,[rtcptr,#rtcHour]
 	bmi checkForAlarm
 
+	ldrb r1,[rtcptr,#rtcWeekDay]	;@ WeekDay
+	add r1,r1,#0x01
+	cmp r1,#0x7
+	movpl r1,#0
+	strb r1,[rtcptr,#rtcWeekDay]
+
 	ldrb r1,[rtcptr,#rtcDay]		;@ Days
 	add r1,r1,#0x01
 	and r2,r1,#0x0F
 	cmp r2,#0x0A
 	addpl r1,r1,#0x06
 	cmp r1,#0x32
-	movpl r1,#0
+	movpl r1,#1
 	strb r1,[rtcptr,#rtcDay]
 	bmi checkForAlarm
 
@@ -145,104 +164,94 @@ wsRtcUpdate:		;@ r0=rtcptr. Call every second.
 	strb r1,[rtcptr,#rtcMonth]
 
 checkForAlarm:
+	ldrb r1,[rtcptr,#rtcStatus]		;@ Status
+	ands r2,r1,#0x2A				;@ Any interrupts enabled?
+	beq handleAlarm
 	ldrb r1,[rtcptr,#rtcSecond]		;@ Seconds
 	cmp r1,#0x00
 	ldrbeq r1,[rtcptr,#rtcMinute]	;@ RTC Minutes
-	ldrbeq r2,[rtcptr,#rtcAlarmMinute]	;@ ALARM Minutes
+	ldrbeq r2,[rtcptr,#rtcAlarmM]	;@ ALARM Minutes
 	cmpeq r1,r2
 	ldrbeq r1,[rtcptr,#rtcHour]		;@ RTC Hours
-	ldrbeq r2,[rtcptr,#rtcAlarmHour]	;@ ALARM Hours
+	ldrbeq r2,[rtcptr,#rtcAlarmH]	;@ ALARM Hours
 	cmpeq r1,r2
-	moveq r0,#0x0A
-	ldreq r1,[rtcptr,#rtcInterruptPtr]
-	bxeq r1
-
-	bx lr
+	movne r2,#0
+	moveq r2,#1
+handleAlarm:
+	ldr r1,[rtcptr,#rtcInterruptPtr]
+	mov r0,r2
+	bx r1
 ;@----------------------------------------------------------------------------
 wsRtcStatusR:			;@ r0=rtcptr
 	.type   wsRtcStatusR STT_FUNC
 ;@----------------------------------------------------------------------------
 	ldrb r0,[rtcptr,#rtcCommand]
-	orr r0,r0,#0x80			;@ Hack, always ready
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcDataR:				;@ r0=rtcptr
 	.type   wsRtcDataR STT_FUNC
 ;@----------------------------------------------------------------------------
-	ldrb r1,[rtcptr,#rtcCommand]
-	ldrb r2,[rtcptr,#rtcIndex]
-	add r3,r2,#1
-	strb r3,[rtcptr,#rtcIndex]
-	cmp r1,#0x15			;@ Read DateTime
-	beq readDateTime
-	cmp r1,#0x13			;@ Read ???
-	bne noRtcData
-	cmp r3,#1
-	movmi r0,#0				;@ What is expected
-	bxmi lr
-	b noRtcData
-readDateTime:
-	cmp r3,#7
-	addmi r1,rtcptr,#rtcYear
-	ldrbmi r0,[r1,r2]
-	bxmi lr
-noRtcData:
-	mov r1,#0
-	strb r1,[rtcptr,#rtcCommand]
-	mov r0,#0x80
-	bx lr
+	mov r1,#0xFF
 ;@----------------------------------------------------------------------------
 wsRtcDataW:				;@ r0=rtcptr, r1 = value
 	.type   wsRtcDataW STT_FUNC
 ;@----------------------------------------------------------------------------
-	stmfd sp!,{r0,r1,r12,lr}
-	mov r0,#0xCB
-	blx debugIOUnimplW
-	ldmfd sp!,{r0,r1,r12,lr}
-	ldrb r3,[rtcptr,#rtcCommand]
+	ldrb r3,[rtcptr,#rtcLength]
+	subs r3,r3,#1
+	bmi noWriteData
+	strb r3,[rtcptr,#rtcLength]
+	ldrb r2,[rtcptr,#rtcCommand]
+	biceq r2,r2,#0x80
+	cmp r3,#1
+	biceq r2,r2,#0x10
+	strbeq r2,[rtcptr,#rtcCommand]
+	tst r2,#1
 	ldrb r2,[rtcptr,#rtcIndex]
-	cmp r3,#0x14			;@ Write DateTime
-	beq writeDateTime
-	cmp r3,#0x18			;@ Write Alarm
-	bne noWriteData
-	add r3,rtcptr,#rtcAlarmHour
-	strb r1,[r3,r2]
-	add r2,r2,#1
-	strb r2,[rtcptr,#rtcIndex]
-	cmp r2,#2
-	bxmi lr
-	b noWriteData
-writeDateTime:
-	add r3,rtcptr,#rtcYear
-	strb r1,[r3,r2]
-	add r2,r2,#1
-	strb r2,[rtcptr,#rtcIndex]
-	cmp r2,#7
-	bxmi lr
+	add r3,r2,#1
+	strb r3,[rtcptr,#rtcIndex]
+	strbeq r1,[rtcptr,r2]
+	ldrb r1,[rtcptr,r2]
 noWriteData:
-	mov r1,#0
-	strb r1,[rtcptr,#rtcCommand]
+	mov r0,r1
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	.type   wsRtcCommandW STT_FUNC
 ;@----------------------------------------------------------------------------
-	stmfd sp!,{r0,r1,r12,lr}
-	mov r0,#0xCB
-	blx debugIOUnimplW
-	ldmfd sp!,{r0,r1,r12,lr}
 	and r1,r1,#0x1F
-	strb r1,[rtcptr,#rtcCommand]
-	mov r2,#0
-	strb r2,[rtcptr,#rtcIndex]
+	bic r12,r1,#1			;@ Read/Write bit
 
-	cmp r1,#0x10			;@ Reset
+	mov r2,#rtcPadding0
+	mov r3,#0
+
+	cmp r12,#0x1A			;@ Invalid
+	moveq r3,#2
+	cmp r1,#0x19			;@ Alarm read is also write
+	moveq r1,#0x18
+
+	cmp r12,#0x18			;@ Alarm
+	moveq r2,#rtcAlarmH
+	moveq r3,#2
+
+	cmp r12,#0x16			;@ Time
+	moveq r2,#rtcHour
+	moveq r3,#3
+
+	cmp r12,#0x14			;@ DateTime
+	moveq r2,#rtcYear
+	moveq r3,#7
+
+	cmp r12,#0x12			;@ Status register
+	moveq r2,#rtcStatus
+	moveq r3,#1
+	biceq r1,r1,#0x10
+	strb r2,[rtcptr,#rtcIndex]
+	strb r3,[rtcptr,#rtcLength]
+	orr r1,r1,#0x80			;@ Ready for reading/writing.
+	strb r1,[rtcptr,#rtcCommand]
+
+	cmp r12,#0x10			;@ Reset
 	beq wsRtcReset
-//	cmp r1,#0x12			;@ Set Alarm flag
-//	cmp r1,#0x13			;@ Read ???
-//	cmp r1,#0x14			;@ Write DateTime
-//	cmp r1,#0x15			;@ Read DateTime
-//	cmp r1,#0x18			;@ Write Alarm
 	// Error?
 	bx lr
 
