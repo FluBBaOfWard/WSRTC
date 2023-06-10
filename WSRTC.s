@@ -41,7 +41,7 @@
 	.align 2
 ;@----------------------------------------------------------------------------
 wsRtcReset:			;@ In r0 = rtcptr, r1=interrupt func
-	.type   wsRtcReset STT_FUNC
+	.type wsRtcReset STT_FUNC
 ;@----------------------------------------------------------------------------
 	cmp r1,#0
 	adreq r1,dummyFunc
@@ -62,7 +62,7 @@ dummyFunc:
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcSaveState:			;@ In r0=destination, r1=rtcptr. Out r0=state size.
-	.type   wsRtcSaveState STT_FUNC
+	.type wsRtcSaveState STT_FUNC
 ;@----------------------------------------------------------------------------
 	stmfd sp!,{lr}
 	add r1,r1,#wsRtcState
@@ -74,7 +74,7 @@ wsRtcSaveState:			;@ In r0=destination, r1=rtcptr. Out r0=state size.
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcLoadState:			;@ In r0=rtcptr, r1=source. Out r0=state size.
-	.type   wsRtcLoadState STT_FUNC
+	.type wsRtcLoadState STT_FUNC
 ;@----------------------------------------------------------------------------
 	stmfd sp!,{lr}
 	add r0,r0,#wsRtcState
@@ -84,7 +84,7 @@ wsRtcLoadState:			;@ In r0=rtcptr, r1=source. Out r0=state size.
 	ldmfd sp!,{lr}
 ;@----------------------------------------------------------------------------
 wsRtcGetStateSize:		;@ Out r0=state size.
-	.type   wsRtcGetStateSize STT_FUNC
+	.type wsRtcGetStateSize STT_FUNC
 ;@----------------------------------------------------------------------------
 	ldr r0,=(wsRtcStateEnd-wsRtcState)
 	bx lr
@@ -106,7 +106,7 @@ wsRtcSetDateTime:				;@ In r0=rtcptr, r1 ??ssMMHH, r2 = ??DDMMYY
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcUpdate:		;@ r0=rtcptr. Call every second.
-	.type   wsRtcUpdate STT_FUNC
+	.type wsRtcUpdate STT_FUNC
 ;@----------------------------------------------------------------------------
 	ldrb r1,[rtcptr,#rtcSecond]		;@ Seconds
 	add r1,r1,#0x01
@@ -183,18 +183,18 @@ handleAlarm:
 	bx r1
 ;@----------------------------------------------------------------------------
 wsRtcStatusR:			;@ r0=rtcptr
-	.type   wsRtcStatusR STT_FUNC
+	.type wsRtcStatusR STT_FUNC
 ;@----------------------------------------------------------------------------
 	ldrb r0,[rtcptr,#rtcCommand]
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcDataR:				;@ r0=rtcptr
-	.type   wsRtcDataR STT_FUNC
+	.type wsRtcDataR STT_FUNC
 ;@----------------------------------------------------------------------------
 	mov r1,#0xFF
 ;@----------------------------------------------------------------------------
 wsRtcDataW:				;@ r0=rtcptr, r1 = value
-	.type   wsRtcDataW STT_FUNC
+	.type wsRtcDataW STT_FUNC
 ;@----------------------------------------------------------------------------
 	ldrb r3,[rtcptr,#rtcLength]
 	subs r3,r3,#1
@@ -216,7 +216,7 @@ noWriteData:
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcCommandW:			;@ r0=rtcptr, r1 = value
-	.type   wsRtcCommandW STT_FUNC
+	.type wsRtcCommandW STT_FUNC
 ;@----------------------------------------------------------------------------
 	and r1,r1,#0x1F
 	bic r12,r1,#1			;@ Read/Write bit
