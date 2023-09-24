@@ -3,7 +3,7 @@
 //  WSRTC
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2023 Fredrik Ahlström. All rights reserved.
 //
 // Bandai WonderSwan RTC emulation.
 // Seiko S-3511A RTC behind Bandai 2003.

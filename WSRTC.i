@@ -3,7 +3,7 @@
 //  WSRTC
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2023 Fredrik Ahlström. All rights reserved.
 //
 // ASM header for
 // Bandai WonderSwan RTC emulation.
@@ -33,6 +33,7 @@ rtcPadding2:		.byte 0
 wsRtcStateEnd:
 
 wsRtcSize:
+	.previous
 
 ;@----------------------------------------------------------------------------
 
