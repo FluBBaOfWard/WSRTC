@@ -1,12 +1,11 @@
 //
 //  WSRTC.h
-//  WSRTC
+//  Bandai WonderSwan RTC emulation.
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022-2023 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2024 Fredrik Ahlström. All rights reserved.
 //
-// Bandai WonderSwan RTC emulation.
-// Seiko S-3511A RTC behind Bandai 2003.
+// Seiko S-3511A RTC behind Luxsor 2003.
 
 #ifndef WSRTC_HEADER
 #define WSRTC_HEADER
@@ -16,7 +15,7 @@ extern "C" {
 #endif
 
 typedef struct {
-	void void *interruptPtr(int val);
+	void (*interruptPtr)(bool);
 	u8 rtcCommand;
 	u8 rtcIndex;
 	u8 rtcLength;
@@ -35,7 +34,7 @@ typedef struct {
 	u8 rtcPadding2;
 } WSRTC;
 
-void wsRtcReset(WSRTC *chip, void *interruptFunc);
+void wsRtcReset(WSRTC *chip, void (*interruptFunc)(bool));
 
 /**
  * Saves the state of the chip to the destination.

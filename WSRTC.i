@@ -1,13 +1,15 @@
 //
 //  WSRTC.i
-//  WSRTC
+//  Bandai WonderSwan RTC emulation.
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022-2023 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2024 Fredrik Ahlström. All rights reserved.
 //
-// ASM header for
-// Bandai WonderSwan RTC emulation.
-// Seiko S-3511A RTC behind Bandai 2003.
+// Seiko S-3511A RTC behind Luxsor 2003.
+
+#if !__ASSEMBLER__
+	#error This header file is only for use in assembly files!
+#endif
 
 	rtcptr		.req r0
 						;@ WSRTC.s

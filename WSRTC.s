@@ -1,16 +1,14 @@
-// Bandai WonderSwan RTC emulation
-
-#ifdef __arm__
 //
 //  WSRTC.s
-//  WSRTC
+//  Bandai WonderSwan RTC emulation
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022-2023 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2024 Fredrik Ahlström. All rights reserved.
 //
-// Bandai WonderSwan RTC emulation.
-// Seiko S-3511A RTC behind Bandai 2003.
+// Seiko S-3511A RTC behind Luxsor 2003.
 // Based on https://forums.nesdev.org/viewtopic.php?t=21513
+
+#ifdef __arm__
 
 #include "WSRTC.i"
 
