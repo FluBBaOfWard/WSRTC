@@ -29,9 +29,9 @@ rtcMinute:			.byte 0
 rtcSecond:			.byte 0
 rtcAlarmH:			.byte 0
 rtcAlarmM:			.byte 0
+rtcData:			.byte 0
 rtcPadding0:		.byte 0
 rtcPadding1:		.byte 0
-rtcPadding2:		.byte 0
 wsRtcStateEnd:
 
 wsRtcSize:

@@ -1,4 +1,4 @@
-# WSRTC V0.2.1
+# WSRTC V0.2.2
 
 WonderSwan RTC chip emulator for ARM 32.
 

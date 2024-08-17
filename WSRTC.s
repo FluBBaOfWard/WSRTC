@@ -53,9 +53,9 @@ wsRtcReset:			;@ In r0 = rtcptr, r1=interrupt func
 	strb r1,[rtcptr,#rtcMonth]
 	strb r1,[rtcptr,#rtcDay]
 	mov r1,#-1
+	strb r1,[rtcptr,#rtcData]
 	strb r1,[rtcptr,#rtcPadding0]
 	strb r1,[rtcptr,#rtcPadding1]
-	strb r1,[rtcptr,#rtcPadding2]
 dummyFunc:
 	bx lr
 ;@----------------------------------------------------------------------------
@@ -133,6 +133,8 @@ wsRtcUpdate:		;@ r0=rtcptr. Call every second.
 	addpl r1,r1,#0x06
 	cmp r1,#0x24
 	movpl r1,#0
+	cmp r1,#12
+	orrpl r1,r1,#0x80
 	strb r1,[rtcptr,#rtcHour]
 	bmi checkForAlarm
 
@@ -194,13 +196,12 @@ wsRtcDataR:				;@ r0=rtcptr
 wsRtcDataW:				;@ r0=rtcptr, r1 = value
 	.type wsRtcDataW STT_FUNC
 ;@----------------------------------------------------------------------------
+	strb r1,[rtcptr,#rtcData]
 	ldrb r3,[rtcptr,#rtcLength]
 	subs r3,r3,#1
 	bmi noWriteData
 	strb r3,[rtcptr,#rtcLength]
 	ldrb r2,[rtcptr,#rtcCommand]
-	biceq r2,r2,#0x80
-	cmp r3,#1
 	biceq r2,r2,#0x10
 	strbeq r2,[rtcptr,#rtcCommand]
 	tst r2,#1
@@ -209,6 +210,8 @@ wsRtcDataW:				;@ r0=rtcptr, r1 = value
 	strb r3,[rtcptr,#rtcIndex]
 	strbeq r1,[rtcptr,r2]
 	ldrb r1,[rtcptr,r2]
+	mov r2,#0xFF
+	strb r2,[rtcptr,#rtcData]
 noWriteData:
 	mov r0,r1
 	bx lr
@@ -217,7 +220,7 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	.type wsRtcCommandW STT_FUNC
 ;@----------------------------------------------------------------------------
 	and r1,r1,#0x1F
-	bic r12,r1,#1			;@ Read/Write bit
+	bic r12,r1,#1			;@ 1=Read/0=Write bit
 
 	mov r2,#rtcPadding0
 	mov r3,#0
@@ -242,15 +245,21 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	cmp r12,#0x12			;@ Status register
 	moveq r2,#rtcStatus
 	moveq r3,#1
-	biceq r1,r1,#0x10
+
 	strb r2,[rtcptr,#rtcIndex]
 	strb r3,[rtcptr,#rtcLength]
+	cmp r3,#0
+	biceq r1,r1,#0x10
 	orr r1,r1,#0x80			;@ Ready for reading/writing.
 	strb r1,[rtcptr,#rtcCommand]
 
 	cmp r12,#0x10			;@ Reset
 	beq wsRtcReset
-	// Error?
+	tst r1,#1				;@ Write?
+	bxne lr
+	ldrb r1,[rtcptr,#rtcData]
+	cmp r1,#0xFF
+	bne wsRtcDataW
 	bx lr
 
 #endif // #ifdef __arm__

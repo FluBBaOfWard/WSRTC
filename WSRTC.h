@@ -29,9 +29,9 @@ typedef struct {
 	u8 rtcSecond;
 	u8 rtcAlarmHour;
 	u8 rtcAlarmMinute;
+	u8 rtcData;
 	u8 rtcPadding0;
 	u8 rtcPadding1;
-	u8 rtcPadding2;
 } WSRTC;
 
 void wsRtcReset(WSRTC *chip, void (*interruptFunc)(bool));

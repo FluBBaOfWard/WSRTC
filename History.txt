@@ -2,6 +2,9 @@ WSRTC revision history
 -=-=-=-=-=-=-=-=-=-=-=-
 
 
+V0.2.2 - 2024-08-17 (FluBBa)
+	Fixed data first writes.
+
 V0.2.1 - 2023-09-24 (FluBBa)
 	Small section fix.
 
