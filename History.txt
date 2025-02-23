@@ -2,6 +2,9 @@ WSRTC revision history
 -=-=-=-=-=-=-=-=-=-=-=-
 
 
+V0.2.3 - 2025-02-23 (FluBBa)
+	Fixed AM/PM behaviour.
+
 V0.2.2 - 2024-08-17 (FluBBa)
 	Fixed data first writes.
 

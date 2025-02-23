@@ -3,7 +3,7 @@
 //  Bandai WonderSwan RTC emulation
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022-2024 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2025 Fredrik Ahlström. All rights reserved.
 //
 // Seiko S-3511A RTC behind Luxsor 2003.
 // Based on https://forums.nesdev.org/viewtopic.php?t=21513
@@ -44,11 +44,14 @@ wsRtcReset:			;@ In r0 = rtcptr, r1=interrupt func
 	cmp r1,#0
 	adreq r1,dummyFunc
 	str r1,[rtcptr,#rtcInterruptPtr]
+rtcReset:
 	mov r1,#0
 	str r1,[rtcptr,#wsRtcState]
 	str r1,[rtcptr,#wsRtcState+4]
 	str r1,[rtcptr,#wsRtcState+8]
 	str r1,[rtcptr,#wsRtcState+12]
+//	mov r1,#0x40				;@ 12/24h mode.
+//	strb r1,[rtcptr,#rtcConfiguration]
 	mov r1,#1
 	strb r1,[rtcptr,#rtcMonth]
 	strb r1,[rtcptr,#rtcDay]
@@ -133,8 +136,6 @@ wsRtcUpdate:		;@ r0=rtcptr. Call every second.
 	addpl r1,r1,#0x06
 	cmp r1,#0x24
 	movpl r1,#0
-	cmp r1,#12
-	orrpl r1,r1,#0x80
 	strb r1,[rtcptr,#rtcHour]
 	bmi checkForAlarm
 
@@ -164,7 +165,7 @@ wsRtcUpdate:		;@ r0=rtcptr. Call every second.
 	strb r1,[rtcptr,#rtcMonth]
 
 checkForAlarm:
-	ldrb r1,[rtcptr,#rtcStatus]		;@ Status
+	ldrb r1,[rtcptr,#rtcConfiguration]	;@ Configuration
 	ands r2,r1,#0x2A				;@ Any interrupts enabled?
 	beq handleAlarm
 	ldrb r1,[rtcptr,#rtcSecond]		;@ Seconds
@@ -210,11 +211,25 @@ wsRtcDataW:				;@ r0=rtcptr, r1 = value
 	strb r3,[rtcptr,#rtcIndex]
 	strbeq r1,[rtcptr,r2]
 	ldrb r1,[rtcptr,r2]
+	cmp r2,#rtcHour
+	beq fixupHour
+hourRet:
 	mov r2,#0xFF
 	strb r2,[rtcptr,#rtcData]
 noWriteData:
 	mov r0,r1
 	bx lr
+
+fixupHour:
+	cmp r1,#0x12
+	orrpl r1,r1,#0x80
+	ldrb r2,[rtcptr,#rtcConfiguration]
+	movspl r2,r2,lsl#25				;@ #0x40 12/24h
+	subpl r1,r1,#0x12
+	and r2,r1,#0x0F
+	cmp r2,#0x0A
+	subpl r1,r1,#0x06
+	b hourRet
 ;@----------------------------------------------------------------------------
 wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	.type wsRtcCommandW STT_FUNC
@@ -242,8 +257,8 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	moveq r2,#rtcYear
 	moveq r3,#7
 
-	cmp r12,#0x12			;@ Status register
-	moveq r2,#rtcStatus
+	cmp r12,#0x12			;@ Configuration register
+	moveq r2,#rtcConfiguration
 	moveq r3,#1
 
 	strb r2,[rtcptr,#rtcIndex]
@@ -254,8 +269,8 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	strb r1,[rtcptr,#rtcCommand]
 
 	cmp r12,#0x10			;@ Reset
-	beq wsRtcReset
-	tst r1,#1				;@ Write?
+	beq rtcReset
+	tst r1,#1				;@ Read?
 	bxne lr
 	ldrb r1,[rtcptr,#rtcData]
 	cmp r1,#0xFF

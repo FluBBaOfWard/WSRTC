@@ -3,7 +3,7 @@
 //  Bandai WonderSwan RTC emulation.
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022-2024 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2025 Fredrik Ahlström. All rights reserved.
 //
 // Seiko S-3511A RTC behind Luxsor 2003.
 
@@ -19,7 +19,7 @@ wsRtcState:
 rtcCommand:			.byte 0		;@ Command
 rtcIndex:			.byte 0
 rtcLength:			.byte 0
-rtcStatus:			.byte 0
+rtcConfiguration:	.byte 0
 rtcYear:			.byte 0
 rtcMonth:			.byte 0
 rtcDay:				.byte 0
