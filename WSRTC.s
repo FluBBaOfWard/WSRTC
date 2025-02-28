@@ -44,14 +44,24 @@ wsRtcReset:			;@ In r0 = rtcptr, r1=interrupt func
 	cmp r1,#0
 	adreq r1,dummyFunc
 	str r1,[rtcptr,#rtcInterruptPtr]
+	stmfd sp!,{lr}
+	bl rtcReset
+;@ After initial power on!
+//	mov r1,#0x82
+//	strb r1,[rtcptr,#rtcConfiguration]
+//	mov r1,#0x80
+//	strb r1,[rtcptr,#rtcAlarmH]
+	ldmfd sp!,{lr}
+dummyFunc:
+	bx lr
+;@----------------------------------------------------------------------------
 rtcReset:
+;@----------------------------------------------------------------------------
 	mov r1,#0
 	str r1,[rtcptr,#wsRtcState]
 	str r1,[rtcptr,#wsRtcState+4]
 	str r1,[rtcptr,#wsRtcState+8]
 	str r1,[rtcptr,#wsRtcState+12]
-//	mov r1,#0x40				;@ 12/24h mode.
-//	strb r1,[rtcptr,#rtcConfiguration]
 	mov r1,#1
 	strb r1,[rtcptr,#rtcMonth]
 	strb r1,[rtcptr,#rtcDay]
@@ -59,7 +69,6 @@ rtcReset:
 	strb r1,[rtcptr,#rtcData]
 	strb r1,[rtcptr,#rtcPadding0]
 	strb r1,[rtcptr,#rtcPadding1]
-dummyFunc:
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcSaveState:			;@ In r0=destination, r1=rtcptr. Out r0=state size.
@@ -200,7 +209,7 @@ wsRtcDataW:				;@ r0=rtcptr, r1 = value
 	strb r1,[rtcptr,#rtcData]
 	ldrb r3,[rtcptr,#rtcLength]
 	subs r3,r3,#1
-	bmi noWriteData
+	bmi outOfData
 	strb r3,[rtcptr,#rtcLength]
 	ldrb r2,[rtcptr,#rtcCommand]
 	biceq r2,r2,#0x10
@@ -216,7 +225,7 @@ wsRtcDataW:				;@ r0=rtcptr, r1 = value
 hourRet:
 	mov r2,#0xFF
 	strb r2,[rtcptr,#rtcData]
-noWriteData:
+outOfData:
 	mov r0,r1
 	bx lr
 

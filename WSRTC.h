@@ -61,7 +61,7 @@ int wsRtcGetStateSize(void);
 /**
  * Set the date time of the RTC.
  * @param  *chip: The WSRTC chip to set the time on.
- * @param  time: Second, minute & hour. ??ssMMHH.
+ * @param  time: Second, minute & hour. ??ssMMHH. Hour should 0-23.
  * @param  date: Year, month & day. ??DDMMYY.
  */
 void wsRtcSetDateTime(WSRTC *chip, int time, int date);
