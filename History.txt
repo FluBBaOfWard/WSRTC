@@ -2,6 +2,9 @@ WSRTC revision history
 -=-=-=-=-=-=-=-=-=-=-=-
 
 
+V0.2.4 - 2025-07-22 (FluBBa)
+	Fixed edge case behaviour.
+
 V0.2.3 - 2025-02-24 (FluBBa)
 	Fixed AM/PM behaviour.
 

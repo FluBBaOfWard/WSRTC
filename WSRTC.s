@@ -58,10 +58,10 @@ dummyFunc:
 rtcReset:
 ;@----------------------------------------------------------------------------
 	mov r1,#0
-	str r1,[rtcptr,#wsRtcState]
 	str r1,[rtcptr,#wsRtcState+4]
 	str r1,[rtcptr,#wsRtcState+8]
 	str r1,[rtcptr,#wsRtcState+12]
+	strb r1,[rtcptr,#rtcConfiguration]
 	mov r1,#1
 	strb r1,[rtcptr,#rtcMonth]
 	strb r1,[rtcptr,#rtcDay]
@@ -195,7 +195,10 @@ handleAlarm:
 wsRtcStatusR:			;@ r0=rtcptr
 	.type wsRtcStatusR STT_FUNC
 ;@----------------------------------------------------------------------------
-	ldrb r0,[rtcptr,#rtcCommand]
+	ldrb r1,[rtcptr,#rtcCommand]
+	orr r2,r1,#0x80			;@ Ready for reading/writing.
+	strb r2,[rtcptr,#rtcCommand]
+	mov r0,r1
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcDataR:				;@ r0=rtcptr
@@ -207,13 +210,14 @@ wsRtcDataW:				;@ r0=rtcptr, r1 = value
 	.type wsRtcDataW STT_FUNC
 ;@----------------------------------------------------------------------------
 	strb r1,[rtcptr,#rtcData]
-	ldrb r3,[rtcptr,#rtcLength]
+	ldrsb r3,[rtcptr,#rtcLength]
 	subs r3,r3,#1
 	bmi outOfData
 	strb r3,[rtcptr,#rtcLength]
 	ldrb r2,[rtcptr,#rtcCommand]
 	biceq r2,r2,#0x10
-	strbeq r2,[rtcptr,#rtcCommand]
+	bic r2,r2,#0x80
+	strb r2,[rtcptr,#rtcCommand]
 	tst r2,#1
 	ldrb r2,[rtcptr,#rtcIndex]
 	add r3,r2,#1
@@ -247,12 +251,10 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	bic r12,r1,#1			;@ 1=Read/0=Write bit
 
 	mov r2,#rtcPadding0
-	mov r3,#0
+	mov r3,#-1
 
 	cmp r12,#0x1A			;@ Invalid
 	moveq r3,#2
-	cmp r1,#0x19			;@ Alarm read is also write
-	moveq r1,#0x18
 
 	cmp r12,#0x18			;@ Alarm
 	moveq r2,#rtcAlarmH
@@ -270,14 +272,15 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	moveq r2,#rtcConfiguration
 	moveq r3,#1
 
+	cmp r12,#0x10			;@ Reset
+	moveq r3,#0
+	biceq r1,r1,#0x10
+	orreq r1,r1,#0x80		;@ Ready for reading/writing.
+
 	strb r2,[rtcptr,#rtcIndex]
 	strb r3,[rtcptr,#rtcLength]
-	cmp r3,#0
-	biceq r1,r1,#0x10
-	orr r1,r1,#0x80			;@ Ready for reading/writing.
 	strb r1,[rtcptr,#rtcCommand]
 
-	cmp r12,#0x10			;@ Reset
 	beq rtcReset
 	tst r1,#1				;@ Read?
 	bxne lr

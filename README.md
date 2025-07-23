@@ -1,4 +1,4 @@
-# WSRTC V0.2.2
+# WSRTC V0.2.4
 
 WonderSwan RTC chip emulator for ARM 32.
 
@@ -14,6 +14,8 @@ Thanks to lidnariq for information about the WS RTC.
 
 Fredrik Ahlström
 
-X/Twitter @TheRealFluBBa
+<https://bsky.app/profile/therealflubba.bsky.social>
 
 <https://www.github.com/FluBBaOfWard>
+
+X/Twitter @TheRealFluBBa
