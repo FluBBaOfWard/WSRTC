@@ -6,7 +6,6 @@
 //  Copyright © 2022-2025 Fredrik Ahlström. All rights reserved.
 //
 // Seiko S-3511A RTC behind Luxsor 2003.
-
 #if !__ASSEMBLER__
 	#error This header file is only for use in assembly files!
 #endif

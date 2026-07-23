@@ -81,4 +81,4 @@ void wsRtcDataW(WSRTC *chip, int value);
 } // extern "C"
 #endif
 
-#endif // WSRTC_HEADER
+#endif // !WSRTC_HEADER

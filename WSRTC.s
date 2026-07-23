@@ -7,7 +7,6 @@
 //
 // Seiko S-3511A RTC behind Luxsor 2003.
 // Based on https://forums.nesdev.org/viewtopic.php?t=21513
-
 #ifdef __arm__
 
 #include "WSRTC.i"
@@ -289,4 +288,4 @@ wsRtcCommandW:			;@ r0=rtcptr, r1 = value
 	bne wsRtcDataW
 	bx lr
 
-#endif // #ifdef __arm__
+#endif // __arm__
