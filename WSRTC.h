@@ -16,22 +16,22 @@ extern "C" {
 
 typedef struct {
 	void (*interruptPtr)(bool);
-	u8 rtcCommand;
-	u8 rtcIndex;
-	u8 rtcLength;
-	u8 rtcConfiguration;
-	u8 rtcYear;
-	u8 rtcMonth;
-	u8 rtcDay;
-	u8 rtcWeekDay;
-	u8 rtcHour;
-	u8 rtcMinute;
-	u8 rtcSecond;
-	u8 rtcAlarmHour;
-	u8 rtcAlarmMinute;
-	u8 rtcData;
-	u8 rtcPadding0;
-	u8 rtcPadding1;
+	u8 command;
+	u8 index;
+	u8 length;
+	u8 configuration;
+	u8 year;
+	u8 month;
+	u8 day;
+	u8 weekDay;
+	u8 hour;
+	u8 minute;
+	u8 second;
+	u8 alarmHour;
+	u8 alarmMinute;
+	u8 data;
+	u8 padding0;
+	u8 padding1;
 } WSRTC;
 
 void wsRtcReset(WSRTC *chip, void (*interruptFunc)(bool));
