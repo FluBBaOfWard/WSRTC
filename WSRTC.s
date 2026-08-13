@@ -112,65 +112,17 @@ wsRtcSetDateTime:				;@ In r0=rtcptr, r1 ??ssMMHH, r2 = ??DDMMYY
 	strb r1,[rtcptr,#rtcMinute]		;@ Minute
 	mov r1,r1,lsr#8
 	strb r1,[rtcptr,#rtcSecond]		;@ Second
-	bx lr
+	add r0,rtcptr,#rtcYear
+	b wsRtcNormalizeDateTime
 ;@----------------------------------------------------------------------------
 wsRtcUpdate:		;@ r0=rtcptr. Call every second.
 	.type wsRtcUpdate STT_FUNC
 ;@----------------------------------------------------------------------------
-	ldrb r1,[rtcptr,#rtcSecond]		;@ Seconds
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	cmp r1,#0x60
-	movpl r1,#0
-	strb r1,[rtcptr,#rtcSecond]
-	bmi checkForAlarm
-
-	ldrb r1,[rtcptr,#rtcMinute]		;@ Minutes
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	cmp r1,#0x60
-	movpl r1,#0
-	strb r1,[rtcptr,#rtcMinute]
-	bmi checkForAlarm
-
-	ldrb r1,[rtcptr,#rtcHour]		;@ Hours
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	cmp r1,#0x24
-	movpl r1,#0
-	strb r1,[rtcptr,#rtcHour]
-	bmi checkForAlarm
-
-	ldrb r1,[rtcptr,#rtcWeekDay]	;@ WeekDay
-	add r1,r1,#0x01
-	cmp r1,#0x7
-	movpl r1,#0
-	strb r1,[rtcptr,#rtcWeekDay]
-
-	ldrb r1,[rtcptr,#rtcDay]		;@ Days
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	cmp r1,#0x32
-	movpl r1,#1
-	strb r1,[rtcptr,#rtcDay]
-	bmi checkForAlarm
-
-	ldrb r1,[rtcptr,#rtcMonth]		;@ Months
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	cmp r1,#0x13
-	movpl r1,#1
-	strb r1,[rtcptr,#rtcMonth]
+	stmfd sp!,{r4,lr}
+	mov r4,rtcptr
+	add r0,rtcptr,#rtcYear
+	bl wsRtcTickDateTime
+	mov rtcptr,r4
 
 checkForAlarm:
 	ldrb r1,[rtcptr,#rtcConfiguration]	;@ Configuration
@@ -189,6 +141,7 @@ checkForAlarm:
 handleAlarm:
 	ldr r1,[rtcptr,#rtcInterruptPtr]
 	mov r0,r2
+	ldmfd sp!,{r4,lr}
 	bx r1
 ;@----------------------------------------------------------------------------
 wsRtcStatusR:			;@ r0=rtcptr
@@ -221,7 +174,17 @@ wsRtcDataW:				;@ r0=rtcptr, r1 = value
 	ldrb r2,[rtcptr,#rtcIndex]
 	add r3,r2,#1
 	strb r3,[rtcptr,#rtcIndex]
-	strbeq r1,[rtcptr,r2]
+	bne dataTransferDone
+	strb r1,[rtcptr,r2]
+	cmp r2,#rtcYear
+	blo dataTransferDone
+	cmp r2,#rtcSecond
+	bhi dataTransferDone
+	stmfd sp!,{r0-r4,lr}			;@ Keep 8-byte alignment for the C helper.
+	add r0,rtcptr,#rtcYear
+	bl wsRtcNormalizeDateTime
+	ldmfd sp!,{r0-r4,lr}
+dataTransferDone:
 	ldrb r1,[rtcptr,r2]
 	cmp r2,#rtcHour
 	beq fixupHour
