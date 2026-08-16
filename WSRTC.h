@@ -3,7 +3,7 @@
 //  Bandai WonderSwan RTC emulation.
 //
 //  Created by Fredrik Ahlström on 2022-02-12.
-//  Copyright © 2022-2025 Fredrik Ahlström. All rights reserved.
+//  Copyright © 2022-2026 Fredrik Ahlström. All rights reserved.
 //
 // Seiko S-3511A RTC behind Luxsor 2003.
 
@@ -16,6 +16,7 @@ extern "C" {
 
 typedef struct {
 	void (*interruptPtr)(bool);
+	u32 cycles;
 	u8 command;
 	u8 index;
 	u8 length;
@@ -59,7 +60,7 @@ int wsRtcLoadState(WSRTC *chip, const void *source);
 int wsRtcGetStateSize(void);
 
 /**
- * Set the date time of the RTC.
+ * Set the date time of the RTC, all bytes in BCD format.
  * @param  *chip: The WSRTC chip to set the time on.
  * @param  time: Second, minute & hour. ??ssMMHH. Hour should 0-23.
  * @param  date: Year, month & day. ??DDMMYY.
@@ -67,10 +68,11 @@ int wsRtcGetStateSize(void);
 void wsRtcSetDateTime(WSRTC *chip, int time, int date);
 
 /**
- * Update the RTC, call every second.
+ * Update the RTC, call at least every second.
  * @param  *chip: The WSRTC chip to update.
+ * @param  cycles: Cart clock cycles tp update.
  */
-void wsRtcUpdate(WSRTC *chip);
+void wsRtcUpdate(WSRTC *chip, int cycles);
 
 int wsRtcStatusR(WSRTC *chip);
 void wsRtcCommandW(WSRTC *chip, int value);

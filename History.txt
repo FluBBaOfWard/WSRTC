@@ -2,6 +2,10 @@ WSRTC revision history
 -=-=-=-=-=-=-=-=-=-=-=-
 
 
+V0.3.0 - 2026-08-16 (FluBBa)
+	Fixed handling of invalid values.
+	Added counting of month and year.
+
 V0.2.4 - 2025-07-22 (FluBBa)
 	Fixed edge case behaviour.
 
