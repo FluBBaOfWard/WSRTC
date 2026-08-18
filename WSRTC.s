@@ -130,6 +130,11 @@ wsRtcUpdate:				;@ r0=rtcptr, r1=cart clocks. Call often.
 	bxcs lr
 
 	ldrb r1,[rtcptr,#rtcSecond]	;@ Seconds
+	and r2,r1,#0x0F
+	cmp r2,#0x0A
+	bpl invalidSecond			;@ Invalid BCD is corrected on the next tick.
+	cmp r1,#0x60
+	bpl invalidSecond
 	add r1,r1,#0x01
 	and r2,r1,#0x0F
 	cmp r2,#0x0A
@@ -138,7 +143,14 @@ wsRtcUpdate:				;@ r0=rtcptr, r1=cart clocks. Call often.
 	movpl r1,#0
 	strb r1,[rtcptr,#rtcSecond]
 	bmi checkForAlarm
+	b secondRollover
 
+invalidSecond:
+	mov r1,#0
+	strb r1,[rtcptr,#rtcSecond]
+	b checkForAlarm
+
+secondRollover:
 	ldrb r1,[rtcptr,#rtcMinute]	;@ Minutes
 	add r1,r1,#0x01
 	and r2,r1,#0x0F
@@ -199,12 +211,19 @@ updateDaysMonthsYears:
 correctDays:
 	;@ Calculate days in month
 	ldrb r2,[rtcptr,#rtcMonth]
+	mov r3,r2,lsr#4			;@ Convert packed BCD month to a table index.
+	and r2,r2,#0x0F
+	add r2,r2,r3,lsl#3
+	add r2,r2,r3,lsl#1
 	cmp r2,#2					;@ February?
 	ldrbeq r3,[rtcptr,#rtcYear]
-	addeq r3,r3,r3,lsr#3		;@ We only need lowest bit of top nybble
+	moveq r12,r3,lsr#4			;@ Convert packed BCD year to binary.
+	andeq r3,r3,#0x0F
+	addeq r3,r3,r12,lsl#3
+	addeq r3,r3,r12,lsl#1
 	tsteq r3,#3					;@ Check for leap year
 	adrne r3,daysInMonth-1
-	ldrne r3,[r3,r2]
+	ldrbne r3,[r3,r2]
 	moveq r3,#0x29				;@ 29 days in Feb on leap years
 
 	cmp r1,r3
