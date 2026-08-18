@@ -130,11 +130,15 @@ wsRtcUpdate:				;@ r0=rtcptr, r1=cart clocks. Call often.
 	bxcs lr
 
 	ldrb r1,[rtcptr,#rtcSecond]	;@ Seconds
+	and r2,r1,#0x0F
+	cmp r2,#0x0A
+	bpl invalidSecond			;@ Invalid BCD is corrected on the next tick.
 	add r1,r1,#0x01
 	and r2,r1,#0x0F
 	cmp r2,#0x0A
 	addpl r1,r1,#0x06
 	cmp r1,#0x60
+invalidSecond:
 	movpl r1,#0
 	strb r1,[rtcptr,#rtcSecond]
 	bmi checkForAlarm
@@ -199,12 +203,14 @@ updateDaysMonthsYears:
 correctDays:
 	;@ Calculate days in month
 	ldrb r2,[rtcptr,#rtcMonth]
+	cmp r2,#0x10				;@ Convert packed BCD month to a table index.
+	subpl r2,r2,#6
 	cmp r2,#2					;@ February?
 	ldrbeq r3,[rtcptr,#rtcYear]
 	addeq r3,r3,r3,lsr#3		;@ We only need lowest bit of top nybble
 	tsteq r3,#3					;@ Check for leap year
 	adrne r3,daysInMonth-1
-	ldrne r3,[r3,r2]
+	ldrbne r3,[r3,r2]
 	moveq r3,#0x29				;@ 29 days in Feb on leap years
 
 	cmp r1,r3
