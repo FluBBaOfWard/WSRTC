@@ -133,16 +133,24 @@ wsRtcUpdate:				;@ r0=rtcptr, r1=cart clocks. Call often.
 	and r2,r1,#0x0F
 	cmp r2,#0x0A
 	bpl invalidSecond			;@ Invalid BCD is corrected on the next tick.
+	cmp r1,#0x60
+	bpl invalidSecond
 	add r1,r1,#0x01
 	and r2,r1,#0x0F
 	cmp r2,#0x0A
 	addpl r1,r1,#0x06
 	cmp r1,#0x60
-invalidSecond:
 	movpl r1,#0
 	strb r1,[rtcptr,#rtcSecond]
 	bmi checkForAlarm
+	b secondRollover
 
+invalidSecond:
+	mov r1,#0
+	strb r1,[rtcptr,#rtcSecond]
+	b checkForAlarm
+
+secondRollover:
 	ldrb r1,[rtcptr,#rtcMinute]	;@ Minutes
 	add r1,r1,#0x01
 	and r2,r1,#0x0F
@@ -207,7 +215,10 @@ correctDays:
 	subpl r2,r2,#6
 	cmp r2,#2					;@ February?
 	ldrbeq r3,[rtcptr,#rtcYear]
-	addeq r3,r3,r3,lsr#3		;@ We only need lowest bit of top nybble
+	moveq r12,r3,lsr#4			;@ Convert packed BCD year to binary.
+	andeq r3,r3,#0x0F
+	addeq r3,r3,r12,lsl#3
+	addeq r3,r3,r12,lsl#1
 	tsteq r3,#3					;@ Check for leap year
 	adrne r3,daysInMonth-1
 	ldrbne r3,[r3,r2]
