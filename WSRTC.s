@@ -207,7 +207,8 @@ correctDays:
 	subpl r2,r2,#6
 	cmp r2,#2					;@ February?
 	ldrbeq r3,[rtcptr,#rtcYear]
-	addeq r3,r3,r3,lsr#3		;@ We only need lowest bit of top nybble
+	andeq r3,r3,#0x13			;@ We only need lowest bit of top nybble
+	addeq r3,r3,r3,lsr#3
 	tsteq r3,#3					;@ Check for leap year
 	adrne r3,daysInMonth-1
 	ldrbne r3,[r3,r2]
