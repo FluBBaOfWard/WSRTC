@@ -283,7 +283,9 @@ wsRtcDataW:					;@ r0=rtcptr, r1 = value
 	subs r3,r2,#rtcYear
 	ldrpl pc,[pc,r3,lsl#2]
 	b fixupRet
-	.long fixupYear,fixupMonth,fixupDay,fixupWeekDay,fixupHour,fixupMinute,fixupRet,fixupAlarmH,fixupAlarmM
+	.long fixupYear,fixupMonth,fixupDay,fixupWeekDay,fixupHour,fixupMinute,fixupSecond,fixupAlarmH,fixupAlarmM
+fixupSecond:
+	and r1,r1,#0x7F
 fixupRet:
 	strb r1,[rtcptr,r2]
 fixupDone:
@@ -297,7 +299,7 @@ readCont:
 	ldrb r1,[rtcptr,r2]
 	cmp r2,#rtcHour
 	bne outOfData
-	cmp r1,#12
+	cmp r1,#0x12
 	orrpl r1,r1,#0x80		;@ Set AM/PM flag
 	ldrb r3,[rtcptr,#rtcConfiguration]	;@ Configuration
 	tst r3,#0x40			;@ 24h mode?
