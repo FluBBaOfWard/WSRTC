@@ -123,61 +123,27 @@ wsRtcUpdate:				;@ r0=rtcptr, r1=cart clocks. Call often.
 #endif
 	ldr r3,[rtcptr,#rtcCycles]
 	subs r3,r3,r1
-	ldrcc r1,=384000			;@ 1 Second in cart clocks (3072000/8).
-	addcc r3,r3,r1
+	bcs skipTimeUpdate
+
+	stmfd sp!,{r3,lr}
+	bl updateDateTime
+	ldmfd sp!,{r3,lr}
+
+	ldr r1,=384000				;@ 1 Second in cart clocks (3072000/8).
+	add r3,r3,r1
+skipTimeUpdate:
 	str r3,[rtcptr,#rtcCycles]
-//	bxcs lr
-	bcs checkForAlarm
-
-	ldrb r1,[rtcptr,#rtcSecond]	;@ Seconds
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	bpl invalidSecond			;@ Invalid BCD is corrected on the next tick.
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	cmp r1,#0x60
-invalidSecond:
-	movpl r1,#0
-	strb r1,[rtcptr,#rtcSecond]
-	bmi checkForAlarm
-
-	ldrb r1,[rtcptr,#rtcMinute]	;@ Minutes
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	cmp r1,#0x60
-	movpl r1,#0
-	strb r1,[rtcptr,#rtcMinute]
-	bmi checkForAlarm
-
-	ldrb r1,[rtcptr,#rtcHour]	;@ Hours
-	add r1,r1,#0x01
-	and r2,r1,#0x0F
-	cmp r2,#0x0A
-	addpl r1,r1,#0x06
-	and r2,r1,#0x3F
-	cmp r2,#0x24
-	movpl r1,#0
-	strb r1,[rtcptr,#rtcHour]
-
-	bmi checkForAlarm
-	stmfd sp!,{lr}
-	bl updateDaysMonthsYears
-	ldmfd sp!,{lr}
 
 checkForAlarm:
 	ldrb r3,[rtcptr,#rtcConfiguration]
-	ands r3,r3,#0x2A				;@ Any interrupts enabled?
+	ands r3,r3,#0x2A			;@ Any interrupts enabled?
 	beq handleAlarm
 	ands r3,r3,#0x0A
-	beq alarmHourMinute				;@ 0 = assert whole minute.
-	cmp r3,#0x02					;@ Frequency
+	beq alarmHourMinute			;@ 0 = assert whole minute.
+	cmp r3,#0x02				;@ Frequency
 	beq alarmFreq
-	ldrb r1,[rtcptr,#rtcSecond]		;@ Seconds
-	cmp r3,#0x0A					;@ Every minute steady?
+	ldrb r1,[rtcptr,#rtcSecond]	;@ Seconds
+	cmp r3,#0x0A				;@ Every minute steady?
 alarmMinSteady:
 	cmpeq r1,#0x30
 	moveq r3,#0
@@ -187,8 +153,8 @@ alarmMinEdge:
 	beq setAlarm
 	b handleAlarm
 alarmFreq:
-	ldrb r1,[rtcptr,#rtcAlarmH]		;@ ALARM Hours
-	ldrb r2,[rtcptr,#rtcAlarmM]		;@ ALARM Minutes
+	ldrb r1,[rtcptr,#rtcAlarmH]	;@ ALARM Hours
+	ldrb r2,[rtcptr,#rtcAlarmM]	;@ ALARM Minutes
 	ldr r3,[rtcptr,#rtcCycles]
 	orr r1,r1,r2,lsl#8
 	ands r3,r1,r3,lsr#4
@@ -213,6 +179,43 @@ handleAlarm:
 	bx r1
 
 ;@----------------------------------------------------------------------------
+updateDateTime:
+	ldrb r1,[rtcptr,#rtcSecond]	;@ Seconds
+	and r2,r1,#0x0F
+	cmp r2,#0x0A
+	bpl invalidSecond			;@ Invalid BCD is corrected on the next tick.
+	add r1,r1,#0x01
+	and r2,r1,#0x0F
+	cmp r2,#0x0A
+	addpl r1,r1,#0x06
+	cmp r1,#0x60
+invalidSecond:
+	movpl r1,#0
+	strb r1,[rtcptr,#rtcSecond]
+	bxmi lr
+
+	ldrb r1,[rtcptr,#rtcMinute]	;@ Minutes
+	add r1,r1,#0x01
+	and r2,r1,#0x0F
+	cmp r2,#0x0A
+	addpl r1,r1,#0x06
+	cmp r1,#0x60
+	movpl r1,#0
+	strb r1,[rtcptr,#rtcMinute]
+	bxmi lr
+
+	ldrb r1,[rtcptr,#rtcHour]	;@ Hours
+	add r1,r1,#0x01
+	and r2,r1,#0x0F
+	cmp r2,#0x0A
+	addpl r1,r1,#0x06
+	and r2,r1,#0x3F
+	cmp r2,#0x24
+	movpl r1,#0
+	strb r1,[rtcptr,#rtcHour]
+
+	bxmi lr
+
 updateDaysMonthsYears:
 	ldrb r1,[rtcptr,#rtcWeekDay];@ WeekDay
 	add r1,r1,#0x01
@@ -298,7 +301,7 @@ wsRtcDataW:					;@ r0=rtcptr, r1 = value
 	biceq r2,r2,#0x10
 	bic r2,r2,#0x80
 	strb r2,[rtcptr,#rtcCommand]
-	tst r2,#1				;@ Rd/Wr? 1=Read
+	tst r2,#1					;@ Rd/Wr? 1=Read
 	ldrb r2,[rtcptr,#rtcIndex]
 	add r3,r2,#1
 	strb r3,[rtcptr,#rtcIndex]
@@ -327,22 +330,19 @@ fixupDone:
 	cmp r2,#0
 	bxne lr
 	b checkForAlarm
-outOfData:
-	mov r0,r1
-	bx lr
 
 readCont:
 	ldrb r1,[rtcptr,r2]
 	cmp r2,#rtcHour
 	bne outOfData
 	cmp r1,#0x12
-	orrpl r1,r1,#0x80		;@ Set AM/PM flag
+	orrpl r1,r1,#0x80			;@ Set AM/PM flag
 	ldrb r3,[rtcptr,#rtcConfiguration]	;@ Configuration
-	tst r3,#0x40			;@ 24h mode?
+	tst r3,#0x40				;@ 24h mode?
 	bne outOfData
 	tst r1,#0x80
 	subne r1,r1,#0x12
-
+outOfData:
 	mov r0,r1
 	bx lr
 
@@ -394,6 +394,9 @@ fixupHour:
 	movpl r1,#0
 	tst r1,#0x80
 	addne r1,r3,#0x12
+	and r3,r1,#0x0F
+	cmp r3,#0x0A
+	addpl r1,r1,#6
 fix24hMode:
 	and r1,r1,#0x3F
 	cmp r1,#0x24

@@ -2,11 +2,12 @@ WSRTC revision history
 -=-=-=-=-=-=-=-=-=-=-=-
 
 
-V0.3.0 - 2026-10-07 (FluBBa)
+V0.3.0 - 2026-11-09 (FluBBa)
 	Fixed handling of invalid values.
 	Fixed masking for seconds.
 	Fixed reading of hour/AM/PM.
 	Added counting of month and year.
+	Added alarm functionality.
 
 V0.2.4 - 2025-07-22 (FluBBa)
 	Fixed edge case behaviour.
