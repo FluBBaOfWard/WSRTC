@@ -19,7 +19,6 @@
 	.global wsRtcGetStateSize
 	.global wsRtcSetDateTime
 	.global wsRtcUpdate
-	.global wsRtcUpdateFrame
 
 	.global wsRtcStatusR
 	.global wsRtcCommandW
@@ -122,12 +121,13 @@ wsRtcUpdate:				;@ r0=rtcptr, r1=cart clocks. Call often.
 	orr r2,r2,#0x80				;@ Ready for reading/writing.
 	strb r2,[rtcptr,#rtcCommand]
 #endif
-	ldr r2,[rtcptr,#rtcCycles]
-	subs r1,r2,r1
-	ldrcc r2,=384000			;@ 1 Second in cart clocks (3072000/8).
-	addcc r1,r1,r2
-	str r1,[rtcptr,#rtcCycles]
-	bxcs lr
+	ldr r3,[rtcptr,#rtcCycles]
+	subs r3,r3,r1
+	ldrcc r1,=384000			;@ 1 Second in cart clocks (3072000/8).
+	addcc r3,r3,r1
+	str r3,[rtcptr,#rtcCycles]
+//	bxcs lr
+	bcs checkForAlarm
 
 	ldrb r1,[rtcptr,#rtcSecond]	;@ Seconds
 	and r2,r1,#0x0F
@@ -169,22 +169,47 @@ invalidSecond:
 	ldmfd sp!,{lr}
 
 checkForAlarm:
-	ldrb r3,[rtcptr,#rtcConfiguration]	;@ Configuration
-	ands r2,r3,#0x2A				;@ Any interrupts enabled?
+	ldrb r3,[rtcptr,#rtcConfiguration]
+	ands r3,r3,#0x2A				;@ Any interrupts enabled?
 	beq handleAlarm
+	ands r3,r3,#0x0A
+	beq alarmHourMinute				;@ 0 = assert whole minute.
+	cmp r3,#0x02					;@ Frequency
+	beq alarmFreq
 	ldrb r1,[rtcptr,#rtcSecond]		;@ Seconds
+	cmp r3,#0x0A					;@ Every minute steady?
+alarmMinSteady:
+	cmpeq r1,#0x30
+	moveq r3,#0
+	beq writeAlarm
+alarmMinEdge:
 	cmp r1,#0x00
-	ldrbeq r1,[rtcptr,#rtcMinute]	;@ RTC Minutes
-	ldrbeq r2,[rtcptr,#rtcAlarmM]	;@ ALARM Minutes
-	cmpeq r1,r2
+	beq setAlarm
+	b handleAlarm
+alarmFreq:
+	ldrb r1,[rtcptr,#rtcAlarmH]		;@ ALARM Hours
+	ldrb r2,[rtcptr,#rtcAlarmM]		;@ ALARM Minutes
+	ldr r3,[rtcptr,#rtcCycles]
+	orr r1,r1,r2,lsl#8
+	ands r3,r1,r3,lsr#4
+	movne r3,#1
+	strb r3,[rtcptr,#rtcAlarmAssert]
+	b handleAlarm
+alarmHourMinute:
+	ldrb r1,[rtcptr,#rtcMinute]		;@ RTC Minutes
+	ldrb r2,[rtcptr,#rtcAlarmM]		;@ ALARM Minutes
+	cmp r1,r2
 	ldrbeq r1,[rtcptr,#rtcHour]		;@ RTC Hours
 	ldrbeq r2,[rtcptr,#rtcAlarmH]	;@ ALARM Hours
 	cmpeq r1,r2
-	movne r2,#0
-	moveq r2,#1
+setAlarm:
+	moveq r3,#1
+writeAlarm:
+	strbeq r3,[rtcptr,#rtcAlarmAssert]
 handleAlarm:
+	ldrb r3,[rtcptr,#rtcAlarmAssert]
 	ldr r1,[rtcptr,#rtcInterruptPtr]
-	mov r0,r2
+	mov r0,r3
 	bx r1
 
 ;@----------------------------------------------------------------------------
@@ -280,10 +305,17 @@ wsRtcDataW:					;@ r0=rtcptr, r1 = value
 	bne readCont
 	cmp r2,#rtcData
 	bpl fixupRet
-	subs r3,r2,#rtcYear
+	subs r3,r2,#rtcConfiguration
 	ldrpl pc,[pc,r3,lsl#2]
 	b fixupRet
-	.long fixupYear,fixupMonth,fixupDay,fixupWeekDay,fixupHour,fixupMinute,fixupSecond,fixupAlarmH,fixupAlarmM
+	.long fixupCfg,fixupYear,fixupMonth,fixupDay,fixupWeekDay,fixupHour,fixupMinute,fixupSecond,fixupAlarmH,fixupAlarmM
+fixupCfg:
+	ldrb r3,[rtcptr,#rtcConfiguration]
+	and r1,r1,#0x6A
+	eor r3,r3,r1
+	ands r3,r3,#0x2A
+	mov r3,#0
+	strbne r3,[rtcptr,#rtcAlarmAssert]
 fixupSecond:
 	and r1,r1,#0x7F
 fixupRet:
@@ -291,6 +323,10 @@ fixupRet:
 fixupDone:
 	mov r2,#0xFF
 	strb r2,[rtcptr,#rtcData]
+	ldrb r2,[rtcptr,#rtcLength]
+	cmp r2,#0
+	bxne lr
+	b checkForAlarm
 outOfData:
 	mov r0,r1
 	bx lr

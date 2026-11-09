@@ -32,6 +32,8 @@ rtcAlarmM:			.byte 0
 rtcData:			.byte 0
 rtcPadding0:		.byte 0
 rtcPadding1:		.byte 0
+rtcAlarmAssert:		.byte 0
+	.align 2
 wsRtcStateEnd:
 
 wsRtcSize:

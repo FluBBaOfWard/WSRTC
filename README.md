@@ -11,6 +11,8 @@ WonderSwan RTC chip emulator for ARM 32.
 
 Thanks to lidnariq for information about the WS RTC.
 <https://forums.nesdev.org/viewtopic.php?p=262192>
+Thanks to asiekierka for RTC tests.
+<https://codeberg.org/asie/ws-rtc-test>
 
 Fredrik Ahlström
 
