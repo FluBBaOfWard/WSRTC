@@ -14,7 +14,8 @@
 						;@ WSRTC.s
 	.struct 0
 rtcInterruptPtr:	.long 0
-rtcCycles:			.long 0
+rtcTicks:			.long 0
+rtcCounter:			.long 0
 wsRtcState:
 rtcCommand:			.byte 0		;@ Command
 rtcIndex:			.byte 0

@@ -2,6 +2,9 @@
 
 WonderSwan RTC chip emulator for ARM 32.
 
+Still missing full frequency alarm functionality, wrong frequency and doesn't
+correctly handle multiple bits set at the same time.
+
 ## Projects that use this code
 
 * <https://github.com/FluBBaOfWard/NitroSwan>

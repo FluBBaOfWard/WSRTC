@@ -67,6 +67,8 @@ rtcReset:
 	strb r1,[rtcptr,#rtcData]
 	strb r1,[rtcptr,#rtcPadding0]
 	strb r1,[rtcptr,#rtcPadding1]
+	mov r1,#0x80				;@ Ready for reading/writing.
+	strb r1,[rtcptr,#rtcCommand]
 	bx lr
 ;@----------------------------------------------------------------------------
 wsRtcSaveState:				;@ In r0=dest, r1=rtcptr. Out r0=state size.
@@ -121,18 +123,21 @@ wsRtcUpdate:				;@ r0=rtcptr, r1=cart clocks. Call often.
 	orr r2,r2,#0x80				;@ Ready for reading/writing.
 	strb r2,[rtcptr,#rtcCommand]
 #endif
-	ldr r3,[rtcptr,#rtcCycles]
+	ldr r2,[rtcptr,#rtcTicks]
+	ldr r3,[rtcptr,#rtcCounter]
+	add r2,r2,r1
 	subs r3,r3,r1
 	bcs skipTimeUpdate
 
-	stmfd sp!,{r3,lr}
+	stmfd sp!,{r2,r3,lr}
 	bl updateDateTime
-	ldmfd sp!,{r3,lr}
+	ldmfd sp!,{r2,r3,lr}
 
 	ldr r1,=384000				;@ 1 Second in cart clocks (3072000/8).
 	add r3,r3,r1
 skipTimeUpdate:
-	str r3,[rtcptr,#rtcCycles]
+	str r2,[rtcptr,#rtcTicks]
+	str r3,[rtcptr,#rtcCounter]
 
 checkForAlarm:
 	ldrb r3,[rtcptr,#rtcConfiguration]
@@ -155,7 +160,7 @@ alarmMinEdge:
 alarmFreq:
 	ldrb r1,[rtcptr,#rtcAlarmH]	;@ ALARM Hours
 	ldrb r2,[rtcptr,#rtcAlarmM]	;@ ALARM Minutes
-	ldr r3,[rtcptr,#rtcCycles]
+	ldr r3,[rtcptr,#rtcTicks]
 	orr r1,r1,r2,lsl#8
 	ands r3,r1,r3,lsr#4
 	movne r3,#1
@@ -183,7 +188,7 @@ updateDateTime:
 	ldrb r1,[rtcptr,#rtcSecond]	;@ Seconds
 	and r2,r1,#0x0F
 	cmp r2,#0x0A
-	bpl invalidSecond			;@ Invalid BCD is corrected on the next tick.
+	bpl invalidSecond			;@ Invalid BCD is corrected on seconds tick.
 	add r1,r1,#0x01
 	and r2,r1,#0x0F
 	cmp r2,#0x0A
@@ -329,6 +334,12 @@ fixupDone:
 	ldrb r2,[rtcptr,#rtcLength]
 	cmp r2,#0
 	bxne lr
+	ldrb r1,[rtcptr,#rtcCommand]
+	cmp r1,#0x6					;@ Time
+	cmpne r1,#0x4				;@ DateTime
+	ldreq r3,=384000			;@ 1 Second in cart clocks (3072000/8).
+//	mov r2,#0					;@ r2 should be 0 here
+	beq skipTimeUpdate
 	b checkForAlarm
 
 readCont:
